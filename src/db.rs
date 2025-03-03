@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::fs::File;
 
 use crate::models::{DBState, Epic, Status, Story};
 
 pub struct JiraDatabase {
-    database: Box<dyn Database>,
+    pub database: Box<dyn Database>,
 }
 
 impl JiraDatabase {
@@ -37,7 +37,7 @@ impl JiraDatabase {
         db_state
             .epics
             .get_mut(&epic_id)
-            .ok_or(anyhow::anyhow!("invalid epic id"))?
+            .ok_or(anyhow!("invalid epic id"))?
             .stories
             .push(db_state.last_item_id);
         db_state.stories.insert(db_state.last_item_id, story);
@@ -53,7 +53,7 @@ impl JiraDatabase {
         db_state
             .epics
             .get(&epic_id)
-            .ok_or(anyhow::anyhow!("invalid epic id"))?
+            .ok_or(anyhow!("invalid epic id"))?
             .stories
             .iter()
             .for_each(|id| {
@@ -73,12 +73,12 @@ impl JiraDatabase {
         db_state
             .stories
             .remove(&story_id)
-            .ok_or(anyhow::anyhow!("invalid story id"))?;
+            .ok_or(anyhow!("invalid story id"))?;
 
         db_state
             .epics
             .get_mut(&epic_id)
-            .ok_or(anyhow::anyhow!("invalid epid id"))?
+            .ok_or(anyhow!("invalid epic id"))?
             .stories
             .retain(|&s| s != story_id);
 
@@ -93,7 +93,7 @@ impl JiraDatabase {
         db_state
             .epics
             .get_mut(&epic_id)
-            .ok_or(anyhow::anyhow!("invalid epic id"))?
+            .ok_or(anyhow!("invalid epic id"))?
             .status = status;
 
         self.database.write_db(&db_state)?;
@@ -107,7 +107,7 @@ impl JiraDatabase {
         db_state
             .stories
             .get_mut(&story_id)
-            .ok_or(anyhow::anyhow!("invalid story id"))?
+            .ok_or(anyhow!("invalid story id"))?
             .status = status;
 
         self.database.write_db(&db_state)?;
@@ -116,7 +116,7 @@ impl JiraDatabase {
     }
 }
 
-trait Database {
+pub trait Database {
     fn read_db(&self) -> Result<DBState>;
     fn write_db(&self, db_state: &DBState) -> Result<()>;
 }
