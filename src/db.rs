@@ -1,5 +1,7 @@
-use anyhow::{Error, Result};
-use std::{collections::HashMap, fs::File};
+#![allow(dead_code)]
+
+use anyhow::Result;
+use std::fs::File;
 
 use crate::models::{DBState, Epic, Status, Story};
 
@@ -40,7 +42,7 @@ impl JiraDatabase {
             .push(db_state.last_item_id);
         db_state.stories.insert(db_state.last_item_id, story);
 
-        self.database.write_db(&db_state);
+        self.database.write_db(&db_state)?;
 
         Ok(db_state.last_item_id)
     }
@@ -55,7 +57,7 @@ impl JiraDatabase {
             .stories
             .iter()
             .for_each(|id| {
-                db_state.stories.remove(&id);
+                db_state.stories.remove(id);
             });
 
         db_state.epics.remove(&epic_id);
@@ -108,7 +110,7 @@ impl JiraDatabase {
             .ok_or(anyhow::anyhow!("invalid story id"))?
             .status = status;
 
-        self.database.write_db(&db_state);
+        self.database.write_db(&db_state)?;
 
         Ok(())
     }
@@ -140,10 +142,7 @@ impl Database for JSONFileDatabase {
 }
 
 pub mod test_utils {
-    use std::{
-        cell::{Ref, RefCell},
-        collections::HashMap,
-    };
+    use std::{cell::RefCell, collections::HashMap};
 
     use super::*;
 
