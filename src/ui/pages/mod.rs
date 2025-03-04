@@ -96,11 +96,12 @@ impl Page for EpicDetail {
         let stories = &db_state.stories;
 
         for id in epic.stories.iter().sorted() {
-            let story = &stories[id];
-            let id_col = get_column_string(&id.to_string(), 11);
-            let name_col = get_column_string(&story.name, 32);
-            let status_col = get_column_string(&story.status.to_string(), 17);
-            println!("{} | {} | {}", id_col, name_col, status_col);
+            if let Some(story) = stories.get(id) {
+                let id_col = get_column_string(&id.to_string(), 11);
+                let name_col = get_column_string(&story.name, 32);
+                let status_col = get_column_string(&story.status.to_string(), 17);
+                println!("{} | {} | {}", id_col, name_col, status_col);
+            }
         }
 
         println!();
