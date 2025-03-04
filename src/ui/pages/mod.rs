@@ -22,14 +22,19 @@ impl Page for HomePage {
         println!("----------------------------- EPICS -----------------------------");
         println!("     id     |               name               |      status      ");
 
-        self.db.read_db()?.epics.iter().sorted().for_each(|(id, epic)| {
-            println!(
-                " {} | {} | {} ",
-                get_column_string(&format!("{}", id), 10),
-                get_column_string(&epic.name, 32),
-                get_column_string(&format!("{}", epic.status), 16),
-            )
-        });
+        self.db
+            .read_db()?
+            .epics
+            .iter()
+            .sorted()
+            .for_each(|(id, epic)| {
+                println!(
+                    " {} | {} | {} ",
+                    get_column_string(&format!("{}", id), 11),
+                    get_column_string(&epic.name, 32),
+                    get_column_string(&format!("{}", epic.status), 17),
+                )
+            });
 
         println!();
         println!();
@@ -40,18 +45,18 @@ impl Page for HomePage {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
+        let epics = self.db.read_db()?.epics;
+
         match input {
             "q" => Ok(Some(Action::Exit)),
             "c" => Ok(Some(Action::CreateEpic)),
-            _ => {
-                if let Ok(id) = input.parse::<u32>() {
-                    match self.db.read_db()?.epics.get(&id) {
-                        Some(_) => Ok(Some(Action::NavigateToEpicDetail { epic_id: id })),
-                        None => Ok(None),
+            input => {
+                if let Ok(epic_id) = input.parse::<u32>() {
+                    if epics.contains_key(&epic_id) {
+                        return Ok(Some(Action::NavigateToEpicDetail { epic_id }));
                     }
-                } else {
-                    Ok(None)
                 }
+                Ok(None)
             }
         }
     }
@@ -75,10 +80,10 @@ impl Page for EpicDetail {
 
         println!(
             " {} | {} | {} | {} ",
-            get_column_string(&format!("{}", self.epic_id), 4),
+            get_column_string(&format!("{}", self.epic_id), 5),
             get_column_string(&epic.name, 12),
             get_column_string(&epic.description, 27),
-            get_column_string(&format!("{}", epic.status), 12),
+            get_column_string(&format!("{}", epic.status), 13),
         );
 
         println!();
@@ -91,9 +96,9 @@ impl Page for EpicDetail {
         stories.iter().sorted().for_each(|(id, story)| {
             println!(
                 " {} | {} | {} ",
-                get_column_string(&format!("{}", id), 10),
+                get_column_string(&format!("{}", id), 11),
                 get_column_string(&story.name, 32),
-                get_column_string(&format!("{}", story.status), 16),
+                get_column_string(&format!("{}", story.status), 17),
             );
         });
 
@@ -108,6 +113,8 @@ impl Page for EpicDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
+        let stories = self.db.read_db()?.stories;
+
         match input {
             "p" => Ok(Some(Action::NavigateToPreviousPage)),
             "u" => Ok(Some(Action::UpdateEpicStatus {
@@ -120,17 +127,15 @@ impl Page for EpicDetail {
                 epic_id: self.epic_id,
             })),
             _ => {
-                if let Ok(id) = input.parse::<u32>() {
-                    match self.db.read_db()?.stories.get(&id) {
-                        Some(_) => Ok(Some(Action::NavigateToStoryDetail {
+                if let Ok(story_id) = input.parse::<u32>() {
+                    if stories.contains_key(&story_id) {
+                        return Ok(Some(Action::NavigateToStoryDetail {
                             epic_id: self.epic_id,
-                            story_id: id,
-                        })),
-                        None => Ok(None),
+                            story_id,
+                        }));
                     }
-                } else {
-                    Ok(None)
                 }
+                Ok(None)
             }
         }
     }
@@ -155,10 +160,10 @@ impl Page for StoryDetail {
 
         println!(
             " {} | {} | {} | {} ",
-            get_column_string(&format!("{}", self.story_id), 4),
+            get_column_string(&format!("{}", self.story_id), 5),
             get_column_string(&story.name, 12),
             get_column_string(&story.description, 27),
-            get_column_string(&format!("{}", story.status), 12),
+            get_column_string(&format!("{}", story.status), 13),
         );
 
         println!();
@@ -172,9 +177,14 @@ impl Page for StoryDetail {
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
         match input {
             "p" => Ok(Some(Action::NavigateToPreviousPage)),
-            "u" => Ok(Some(Action::UpdateStoryStatus { story_id: self.story_id })),
-            "d" => Ok(Some(Action::DeleteStory { epic_id: self.epic_id, story_id: self.story_id })),
-            _ => Ok(None)
+            "u" => Ok(Some(Action::UpdateStoryStatus {
+                story_id: self.story_id,
+            })),
+            "d" => Ok(Some(Action::DeleteStory {
+                epic_id: self.epic_id,
+                story_id: self.story_id,
+            })),
+            _ => Ok(None),
         }
     }
 }
