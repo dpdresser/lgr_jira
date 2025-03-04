@@ -14,6 +14,7 @@ use page_helpers::*;
 pub trait Page {
     fn draw_page(&self) -> Result<()>;
     fn handle_input(&self, input: &str) -> Result<Option<Action>>;
+    #[allow(dead_code)]
     fn as_any(&self) -> &dyn Any;
 }
 

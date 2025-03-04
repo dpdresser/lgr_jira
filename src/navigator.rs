@@ -22,8 +22,8 @@ impl Navigator {
         }
     }
 
-    pub fn get_current_page(&self) -> Option<&Box<dyn Page>> {
-        self.pages.get(self.get_page_count() - 1)
+    pub fn get_current_page(&self) -> Option<&dyn Page> {
+        self.pages.last().map(|p| &**p)
     }
 
     pub fn handle_action(&mut self, action: Action) -> Result<()> {
@@ -42,38 +42,48 @@ impl Navigator {
                 }));
             }
             Action::NavigateToPreviousPage => {
-                self.pages.pop();
+                if !self.pages.is_empty() {
+                    self.pages.pop();
+                }
             }
             Action::CreateEpic => {
                 let epic = (self.prompts.create_epic)();
-                self.db.create_epic(epic)?;
+                self.db
+                    .create_epic(epic)
+                    .with_context(|| anyhow!("failed to create epic"))?;
             }
             Action::UpdateEpicStatus { epic_id } => {
-                let status =
-                    (self.prompts.update_status)().with_context(|| anyhow!("No status found"))?;
+                let status = (self.prompts.update_status)()
+                    .with_context(|| anyhow!("failed to update epic"))?;
                 self.db.update_epic_status(epic_id, status)?;
             }
             Action::DeleteEpic { epic_id } => {
                 if (self.prompts.delete_epic)() {
-                    self.db.delete_epic(epic_id)?;
+                    self.db
+                        .delete_epic(epic_id)
+                        .with_context(|| anyhow!("failed to delete epic"))?;
                 }
             }
             Action::CreateStory { epic_id } => {
                 let story = (self.prompts.create_story)();
-                self.db.create_story(story, epic_id)?;
+                self.db
+                    .create_story(story, epic_id)
+                    .with_context(|| anyhow!("failed to create story"))?;
             }
             Action::UpdateStoryStatus { story_id } => {
-                let status =
-                    (self.prompts.update_status)().with_context(|| anyhow!("No status found"))?;
+                let status = (self.prompts.update_status)()
+                    .with_context(|| anyhow!("failed to update story"))?;
                 self.db.update_story_status(story_id, status)?;
             }
             Action::DeleteStory { epic_id, story_id } => {
                 if (self.prompts.delete_story)() {
-                    self.db.delete_story(epic_id, story_id)?;
+                    self.db
+                        .delete_story(epic_id, story_id)
+                        .with_context(|| anyhow!("failed to delete story"))?;
                 }
             }
             Action::Exit => {
-                self.pages.drain(..);
+                self.pages.clear();
             }
         }
 
@@ -81,11 +91,12 @@ impl Navigator {
     }
 
     // Private functions used for testing
-
+    #[allow(dead_code)]
     fn get_page_count(&self) -> usize {
         self.pages.len()
     }
 
+    #[allow(dead_code)]
     fn set_prompts(&mut self, prompts: Prompts) {
         self.prompts = prompts;
     }
