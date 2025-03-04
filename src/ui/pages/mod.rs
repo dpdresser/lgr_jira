@@ -1,6 +1,8 @@
-use anyhow::{Result, anyhow};
-use itertools::Itertools;
 use std::rc::Rc;
+
+use anyhow::Result;
+use anyhow::anyhow;
+use itertools::Itertools;
 
 use crate::db::JiraDatabase;
 use crate::models::Action;
@@ -16,25 +18,20 @@ pub trait Page {
 pub struct HomePage {
     pub db: Rc<JiraDatabase>,
 }
-
 impl Page for HomePage {
     fn draw_page(&self) -> Result<()> {
         println!("----------------------------- EPICS -----------------------------");
         println!("     id     |               name               |      status      ");
 
-        self.db
-            .read_db()?
-            .epics
-            .iter()
-            .sorted()
-            .for_each(|(id, epic)| {
-                println!(
-                    " {} | {} | {} ",
-                    get_column_string(&format!("{}", id), 11),
-                    get_column_string(&epic.name, 32),
-                    get_column_string(&format!("{}", epic.status), 17),
-                )
-            });
+        let epics = self.db.read_db()?.epics;
+
+        for id in epics.keys().sorted() {
+            let epic = &epics[id];
+            let id_col = get_column_string(&id.to_string(), 11);
+            let name_col = get_column_string(&epic.name, 32);
+            let status_col = get_column_string(&epic.status.to_string(), 17);
+            println!("{} | {} | {}", id_col, name_col, status_col);
+        }
 
         println!();
         println!();
@@ -78,13 +75,11 @@ impl Page for EpicDetail {
         println!("------------------------------ EPIC ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
 
-        println!(
-            " {} | {} | {} | {} ",
-            get_column_string(&format!("{}", self.epic_id), 5),
-            get_column_string(&epic.name, 12),
-            get_column_string(&epic.description, 27),
-            get_column_string(&format!("{}", epic.status), 13),
-        );
+        let id_col = get_column_string(&self.epic_id.to_string(), 5);
+        let name_col = get_column_string(&epic.name, 12);
+        let desc_col = get_column_string(&epic.description, 27);
+        let status_col = get_column_string(&epic.status.to_string(), 13);
+        println!("{} | {} | {} | {}", id_col, name_col, desc_col, status_col);
 
         println!();
 
@@ -93,14 +88,13 @@ impl Page for EpicDetail {
 
         let stories = &db_state.stories;
 
-        stories.iter().sorted().for_each(|(id, story)| {
-            println!(
-                " {} | {} | {} ",
-                get_column_string(&format!("{}", id), 11),
-                get_column_string(&story.name, 32),
-                get_column_string(&format!("{}", story.status), 17),
-            );
-        });
+        for id in epic.stories.iter().sorted() {
+            let story = &stories[id];
+            let id_col = get_column_string(&id.to_string(), 11);
+            let name_col = get_column_string(&story.name, 32);
+            let status_col = get_column_string(&story.status.to_string(), 17);
+            println!("{} | {} | {}", id_col, name_col, status_col);
+        }
 
         println!();
         println!();
@@ -113,7 +107,8 @@ impl Page for EpicDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        let stories = self.db.read_db()?.stories;
+        let db_state = self.db.read_db()?;
+        let stories = db_state.stories;
 
         match input {
             "p" => Ok(Some(Action::NavigateToPreviousPage)),
@@ -126,7 +121,7 @@ impl Page for EpicDetail {
             "c" => Ok(Some(Action::CreateStory {
                 epic_id: self.epic_id,
             })),
-            _ => {
+            input => {
                 if let Ok(story_id) = input.parse::<u32>() {
                     if stories.contains_key(&story_id) {
                         return Ok(Some(Action::NavigateToStoryDetail {
@@ -157,14 +152,11 @@ impl Page for StoryDetail {
 
         println!("------------------------------ STORY ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
-
-        println!(
-            " {} | {} | {} | {} ",
-            get_column_string(&format!("{}", self.story_id), 5),
-            get_column_string(&story.name, 12),
-            get_column_string(&story.description, 27),
-            get_column_string(&format!("{}", story.status), 13),
-        );
+        let id_col = get_column_string(&self.story_id.to_string(), 5);
+        let name_col = get_column_string(&story.name, 12);
+        let desc_col = get_column_string(&story.description, 27);
+        let status_col = get_column_string(&story.status.to_string(), 13);
+        println!("{} | {} | {} | {}", id_col, name_col, desc_col, status_col);
 
         println!();
         println!();

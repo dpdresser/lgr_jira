@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Action {
     NavigateToEpicDetail { epic_id: u32 },
     NavigateToStoryDetail { epic_id: u32, story_id: u32 },
@@ -15,7 +15,7 @@ pub enum Action {
     Exit,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub enum Status {
     Open,
     InProgress,
@@ -26,15 +26,23 @@ pub enum Status {
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Open => write!(f, "OPEN"),
-            Self::InProgress => write!(f, "INPROGRESS"),
-            Self::Resolved => write!(f, "RESOLVED"),
-            Self::Closed => write!(f, "CLOSED"),
+            Self::Open => {
+                write!(f, "OPEN")
+            }
+            Self::InProgress => {
+                write!(f, "IN PROGRESS")
+            }
+            Self::Resolved => {
+                write!(f, "RESOLVED")
+            }
+            Self::Closed => {
+                write!(f, "CLOSED")
+            }
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Epic {
     pub name: String,
     pub description: String,
@@ -48,12 +56,12 @@ impl Epic {
             name,
             description,
             status: Status::Open,
-            stories: Vec::new(),
+            stories: vec![],
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Story {
     pub name: String,
     pub description: String,
@@ -70,7 +78,7 @@ impl Story {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct DBState {
     pub last_item_id: u32,
     pub epics: HashMap<u32, Epic>,
