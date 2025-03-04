@@ -91,7 +91,7 @@ fn update_status_prompt() -> Option<Status> {
                 return Some(Status::Resolved);
             }
             4 => {
-                Some(Status::Closed);
+                return Some(Status::Closed);
             }
             _ => return None,
         }
