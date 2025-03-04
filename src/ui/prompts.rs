@@ -24,6 +24,7 @@ impl Prompts {
 }
 
 fn create_epic_prompt() -> Epic {
+    println!("----------------------------");
     println!("Epic Name: ");
     let name = get_user_input();
 
@@ -34,6 +35,7 @@ fn create_epic_prompt() -> Epic {
 }
 
 fn create_story_prompt() -> Story {
+    println!("----------------------------");
     println!("Story Name: ");
     let name = get_user_input();
 
@@ -44,50 +46,54 @@ fn create_story_prompt() -> Story {
 }
 
 fn delete_epic_prompt() -> bool {
-    println!("Are you sure you want to delete this epic? All stories in this epic will also be deleted [Y/n]: ");
+    println!("----------------------------");
+    println!(
+        "Are you sure you want to delete this epic? All stories in this epic will also be deleted [Y/n]: "
+    );
 
     let user_input = get_user_input();
 
-    match user_input.as_str() {
-        "Y" => true,
-        "n" => false,
-        _ => {
-            println!("Invalid input.");
-            false
-        }
+    if user_input.eq("Y") {
+        return true;
     }
+
+    false
 }
 
 fn delete_story_prompt() -> bool {
+    println!("----------------------------");
     println!("Are you sure you Wnat to delete this story? [Y/n]: ");
 
     let user_input = get_user_input();
 
-    match user_input.as_str() {
-        "Y" => true,
-        "n" => false,
-        _ => {
-            println!("Invalid input.");
-            false
-        }
+    if user_input.eq("Y") {
+        return true;
     }
+
+    false
 }
 
 fn update_status_prompt() -> Option<Status> {
+    println!("----------------------------");
     println!("New Status (1 - OPEN, 2 - IN-PROGRESS, 3 - RESOLVED, 4 - CLOSED): ");
 
     let user_input = get_user_input();
 
-    if let Ok(input) = user_input.parse::<u32>() {
+    if let Ok(input) = user_input.parse::<u8>() {
         match input {
-            1 => { return Some(Status::Open); },
-            2 => { return Some(Status::InProgress); },
-            3 => { return Some(Status::Resolved); },
-            4 => { Some(Status::Closed); },
-            _ => {
-                println!("Invalid input.");
-                return None;
-            },
+            1 => {
+                return Some(Status::Open);
+            }
+            2 => {
+                return Some(Status::InProgress);
+            }
+            3 => {
+                return Some(Status::Resolved);
+            }
+            4 => {
+                Some(Status::Closed);
+            }
+            _ => return None,
         }
     }
 
