@@ -24,21 +24,72 @@ impl Prompts {
 }
 
 fn create_epic_prompt() -> Epic {
-    todo!();
+    println!("Epic Name: ");
+    let name = get_user_input();
+
+    println!("Epic Description: ");
+    let description = get_user_input();
+
+    Epic::new(name, description)
 }
 
 fn create_story_prompt() -> Story {
-    todo!();
+    println!("Story Name: ");
+    let name = get_user_input();
+
+    println!("Story Description: ");
+    let description = get_user_input();
+
+    Story::new(name, description)
 }
 
 fn delete_epic_prompt() -> bool {
-    todo!();
+    println!("Are you sure you want to delete this epic? All stories in this epic will also be deleted [Y/n]: ");
+
+    let user_input = get_user_input();
+
+    match user_input.as_str() {
+        "Y" => true,
+        "n" => false,
+        _ => {
+            println!("Invalid input.");
+            false
+        }
+    }
 }
 
 fn delete_story_prompt() -> bool {
-    todo!();
+    println!("Are you sure you Wnat to delete this story? [Y/n]: ");
+
+    let user_input = get_user_input();
+
+    match user_input.as_str() {
+        "Y" => true,
+        "n" => false,
+        _ => {
+            println!("Invalid input.");
+            false
+        }
+    }
 }
 
 fn update_status_prompt() -> Option<Status> {
-    todo!();
+    println!("New Status (1 - OPEN, 2 - IN-PROGRESS, 3 - RESOLVED, 4 - CLOSED): ");
+
+    let user_input = get_user_input();
+
+    if let Ok(input) = user_input.parse::<u32>() {
+        match input {
+            1 => { return Some(Status::Open); },
+            2 => { return Some(Status::InProgress); },
+            3 => { return Some(Status::Resolved); },
+            4 => { Some(Status::Closed); },
+            _ => {
+                println!("Invalid input.");
+                return None;
+            },
+        }
+    }
+
+    None
 }
