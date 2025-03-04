@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display};
 
@@ -17,7 +15,7 @@ pub enum Action {
     Exit,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, PartialOrd, Ord)]
 pub enum Status {
     Open,
     InProgress,
@@ -27,11 +25,16 @@ pub enum Status {
 
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            Self::Open => write!(f, "OPEN"),
+            Self::InProgress => write!(f, "INPROGRESS"),
+            Self::Resolved => write!(f, "RESOLVED"),
+            Self::Closed => write!(f, "CLOSED"),
+        }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Epic {
     pub name: String,
     pub description: String,
@@ -50,7 +53,7 @@ impl Epic {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, PartialOrd, Ord)]
 pub struct Story {
     pub name: String,
     pub description: String,

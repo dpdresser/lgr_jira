@@ -2,20 +2,15 @@ use ellipse::Ellipse;
 
 pub fn get_column_string(text: &str, width: usize) -> String {
     let mut text = text.to_string();
-    
+
     if text.len() <= width {
-        text
-            .push_str(&" ".repeat(width - text.len()));
+        text.push_str(&" ".repeat(width - text.len()));
         return text;
     }
 
     text = match width {
-        0..=3 => {
-            ".".repeat(width).to_string()
-        },
-        _ => {
-            text.as_str().truncate_ellipse(width - 3).to_string()
-        },
+        0..=3 => ".".repeat(width).to_string(),
+        _ => text.as_str().truncate_ellipse(width - 3).to_string(),
     };
 
     text

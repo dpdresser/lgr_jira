@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use itertools::Itertools;
 use std::rc::Rc;
 
@@ -22,7 +22,14 @@ impl Page for HomePage {
         println!("----------------------------- EPICS -----------------------------");
         println!("     id     |               name               |      status      ");
 
-        // TODO: print out epics using get_column_string(). also make sure the epics are sorted by id
+        self.db.read_db()?.epics.iter().sorted().for_each(|(id, epic)| {
+            println!(
+                " {} | {} | {} ",
+                get_column_string(&format!("{}", id), 10),
+                get_column_string(&epic.name, 32),
+                get_column_string(&format!("{}", epic.status), 16),
+            )
+        });
 
         println!();
         println!();
@@ -33,25 +40,47 @@ impl Page for HomePage {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "q" => Ok(Some(Action::Exit)),
+            "c" => Ok(Some(Action::CreateEpic)),
+            _ => {
+                if let Ok(id) = input.parse::<u32>() {
+                    match self.db.read_db()?.epics.get(&id) {
+                        Some(_) => Ok(Some(Action::NavigateToEpicDetail { epic_id: id })),
+                        None => Ok(None),
+                    }
+                } else {
+                    Ok(None)
+                }
+            }
+        }
     }
 }
 
 pub struct EpicDetail {
     pub epic_id: u32,
-    pub db: Rc<JiraDatabase>
+    pub db: Rc<JiraDatabase>,
 }
 
 impl Page for EpicDetail {
     fn draw_page(&self) -> Result<()> {
         let db_state = self.db.read_db()?;
-        let epic = db_state.epics.get(&self.epic_id).ok_or_else(|| anyhow!("could not find epic!"))?;
+        let epic = db_state
+            .epics
+            .get(&self.epic_id)
+            .ok_or_else(|| anyhow!("could not find epic!"))?;
 
         println!("------------------------------ EPIC ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
 
-        // TODO: print out epic details using get_column_string()
-  
+        println!(
+            " {} | {} | {} | {} ",
+            get_column_string(&format!("{}", self.epic_id), 4),
+            get_column_string(&epic.name, 12),
+            get_column_string(&epic.description, 27),
+            get_column_string(&format!("{}", epic.status), 12),
+        );
+
         println!();
 
         println!("---------------------------- STORIES ----------------------------");
@@ -59,37 +88,79 @@ impl Page for EpicDetail {
 
         let stories = &db_state.stories;
 
-        // TODO: print out stories using get_column_string(). also make sure the stories are sorted by id
+        stories.iter().sorted().for_each(|(id, story)| {
+            println!(
+                " {} | {} | {} ",
+                get_column_string(&format!("{}", id), 10),
+                get_column_string(&story.name, 32),
+                get_column_string(&format!("{}", story.status), 16),
+            );
+        });
 
         println!();
         println!();
 
-        println!("[p] previous | [u] update epic | [d] delete epic | [c] create story | [:id:] navigate to story");
+        println!(
+            "[p] previous | [u] update epic | [d] delete epic | [c] create story | [:id:] navigate to story"
+        );
 
         Ok(())
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "p" => Ok(Some(Action::NavigateToPreviousPage)),
+            "u" => Ok(Some(Action::UpdateEpicStatus {
+                epic_id: self.epic_id,
+            })),
+            "d" => Ok(Some(Action::DeleteEpic {
+                epic_id: self.epic_id,
+            })),
+            "c" => Ok(Some(Action::CreateStory {
+                epic_id: self.epic_id,
+            })),
+            _ => {
+                if let Ok(id) = input.parse::<u32>() {
+                    match self.db.read_db()?.stories.get(&id) {
+                        Some(_) => Ok(Some(Action::NavigateToStoryDetail {
+                            epic_id: self.epic_id,
+                            story_id: id,
+                        })),
+                        None => Ok(None),
+                    }
+                } else {
+                    Ok(None)
+                }
+            }
+        }
     }
 }
 
 pub struct StoryDetail {
     pub epic_id: u32,
     pub story_id: u32,
-    pub db: Rc<JiraDatabase>
+    pub db: Rc<JiraDatabase>,
 }
 
 impl Page for StoryDetail {
     fn draw_page(&self) -> Result<()> {
         let db_state = self.db.read_db()?;
-        let story = db_state.stories.get(&self.story_id).ok_or_else(|| anyhow!("could not find story!"))?;
+        let story = db_state
+            .stories
+            .get(&self.story_id)
+            .ok_or_else(|| anyhow!("could not find story!"))?;
 
         println!("------------------------------ STORY ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
-        
-        // TODO: print out story details using get_column_string()
-        
+
+        println!(
+            " {} | {} | {} | {} ",
+            get_column_string(&format!("{}", self.story_id), 4),
+            get_column_string(&story.name, 12),
+            get_column_string(&story.description, 27),
+            get_column_string(&format!("{}", story.status), 12),
+        );
+
         println!();
         println!();
 
@@ -99,14 +170,19 @@ impl Page for StoryDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "p" => Ok(Some(Action::NavigateToPreviousPage)),
+            "u" => Ok(Some(Action::UpdateStoryStatus { story_id: self.story_id })),
+            "d" => Ok(Some(Action::DeleteStory { epic_id: self.epic_id, story_id: self.story_id })),
+            _ => Ok(None)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{db::test_utils::MockDB};
+    use crate::db::test_utils::MockDB;
     use crate::models::{Epic, Story};
 
     mod home_page {
@@ -114,15 +190,19 @@ mod tests {
 
         #[test]
         fn draw_page_should_not_throw_error() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
             let page = HomePage { db };
             assert_eq!(page.draw_page().is_ok(), true);
         }
-        
+
         #[test]
         fn handle_input_should_not_throw_error() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
             let page = HomePage { db };
             assert_eq!(page.handle_input("").is_ok(), true);
@@ -130,7 +210,9 @@ mod tests {
 
         #[test]
         fn handle_input_should_return_the_correct_actions() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
             let epic = Epic::new("".to_owned(), "".to_owned());
 
@@ -148,11 +230,20 @@ mod tests {
 
             assert_eq!(page.handle_input(q).unwrap(), Some(Action::Exit));
             assert_eq!(page.handle_input(c).unwrap(), Some(Action::CreateEpic));
-            assert_eq!(page.handle_input(&valid_epic_id).unwrap(), Some(Action::NavigateToEpicDetail { epic_id: 1 }));
+            assert_eq!(
+                page.handle_input(&valid_epic_id).unwrap(),
+                Some(Action::NavigateToEpicDetail { epic_id: 1 })
+            );
             assert_eq!(page.handle_input(invalid_epic_id).unwrap(), None);
             assert_eq!(page.handle_input(junk_input).unwrap(), None);
-            assert_eq!(page.handle_input(junk_input_with_valid_prefix).unwrap(), None);
-            assert_eq!(page.handle_input(input_with_trailing_white_spaces).unwrap(), None);
+            assert_eq!(
+                page.handle_input(junk_input_with_valid_prefix).unwrap(),
+                None
+            );
+            assert_eq!(
+                page.handle_input(input_with_trailing_white_spaces).unwrap(),
+                None
+            );
         }
     }
 
@@ -161,8 +252,12 @@ mod tests {
 
         #[test]
         fn draw_page_should_not_throw_error() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
 
             let page = EpicDetail { epic_id, db };
             assert_eq!(page.draw_page().is_ok(), true);
@@ -170,8 +265,12 @@ mod tests {
 
         #[test]
         fn handle_input_should_not_throw_error() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
 
             let page = EpicDetail { epic_id, db };
             assert_eq!(page.handle_input("").is_ok(), true);
@@ -179,7 +278,9 @@ mod tests {
 
         #[test]
         fn draw_page_should_throw_error_for_invalid_epic_id() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
             let page = EpicDetail { epic_id: 999, db };
             assert_eq!(page.draw_page().is_err(), true);
@@ -187,10 +288,16 @@ mod tests {
 
         #[test]
         fn handle_input_should_return_the_correct_actions() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
-            let story_id = db.create_story(Story::new("".to_owned(), "".to_owned()), epic_id).unwrap();
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
+            let story_id = db
+                .create_story(Story::new("".to_owned(), "".to_owned()), epic_id)
+                .unwrap();
 
             let page = EpicDetail { epic_id, db };
 
@@ -203,16 +310,40 @@ mod tests {
             let junk_input_with_valid_prefix = "p983f2j";
             let input_with_trailing_white_spaces = "p\n";
 
-            assert_eq!(page.handle_input(p).unwrap(), Some(Action::NavigateToPreviousPage));
-            assert_eq!(page.handle_input(u).unwrap(), Some(Action::UpdateEpicStatus { epic_id: 1 }));
-            assert_eq!(page.handle_input(d).unwrap(), Some(Action::DeleteEpic { epic_id: 1 }));
-            assert_eq!(page.handle_input(c).unwrap(), Some(Action::CreateStory { epic_id: 1 }));
-            assert_eq!(page.handle_input(&story_id.to_string()).unwrap(), Some(Action::NavigateToStoryDetail { epic_id: 1, story_id: 2 }));
+            assert_eq!(
+                page.handle_input(p).unwrap(),
+                Some(Action::NavigateToPreviousPage)
+            );
+            assert_eq!(
+                page.handle_input(u).unwrap(),
+                Some(Action::UpdateEpicStatus { epic_id: 1 })
+            );
+            assert_eq!(
+                page.handle_input(d).unwrap(),
+                Some(Action::DeleteEpic { epic_id: 1 })
+            );
+            assert_eq!(
+                page.handle_input(c).unwrap(),
+                Some(Action::CreateStory { epic_id: 1 })
+            );
+            assert_eq!(
+                page.handle_input(&story_id.to_string()).unwrap(),
+                Some(Action::NavigateToStoryDetail {
+                    epic_id: 1,
+                    story_id: 2
+                })
+            );
             assert_eq!(page.handle_input(invalid_story_id).unwrap(), None);
             assert_eq!(page.handle_input(junk_input).unwrap(), None);
-            assert_eq!(page.handle_input(junk_input_with_valid_prefix).unwrap(), None);
-            assert_eq!(page.handle_input(input_with_trailing_white_spaces).unwrap(), None);
-        } 
+            assert_eq!(
+                page.handle_input(junk_input_with_valid_prefix).unwrap(),
+                None
+            );
+            assert_eq!(
+                page.handle_input(input_with_trailing_white_spaces).unwrap(),
+                None
+            );
+        }
     }
 
     mod story_detail_page {
@@ -220,45 +351,85 @@ mod tests {
 
         #[test]
         fn draw_page_should_not_throw_error() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
-            let story_id = db.create_story(Story::new("".to_owned(), "".to_owned()), epic_id).unwrap();
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
+            let story_id = db
+                .create_story(Story::new("".to_owned(), "".to_owned()), epic_id)
+                .unwrap();
 
-            let page = StoryDetail { epic_id, story_id, db };
+            let page = StoryDetail {
+                epic_id,
+                story_id,
+                db,
+            };
             assert_eq!(page.draw_page().is_ok(), true);
         }
 
         #[test]
         fn handle_input_should_not_throw_error() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
-            let story_id = db.create_story(Story::new("".to_owned(), "".to_owned()), epic_id).unwrap();
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
+            let story_id = db
+                .create_story(Story::new("".to_owned(), "".to_owned()), epic_id)
+                .unwrap();
 
-            let page = StoryDetail { epic_id, story_id, db };
+            let page = StoryDetail {
+                epic_id,
+                story_id,
+                db,
+            };
             assert_eq!(page.handle_input("").is_ok(), true);
         }
 
         #[test]
         fn draw_page_should_throw_error_for_invalid_story_id() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
-            let _ = db.create_story(Story::new("".to_owned(), "".to_owned()), epic_id).unwrap();
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
+            let _ = db
+                .create_story(Story::new("".to_owned(), "".to_owned()), epic_id)
+                .unwrap();
 
-            let page = StoryDetail { epic_id, story_id: 999, db };
+            let page = StoryDetail {
+                epic_id,
+                story_id: 999,
+                db,
+            };
             assert_eq!(page.draw_page().is_err(), true);
         }
 
         #[test]
         fn handle_input_should_return_the_correct_actions() {
-            let db = Rc::new(JiraDatabase { database: Box::new(MockDB::new()) });
+            let db = Rc::new(JiraDatabase {
+                database: Box::new(MockDB::new()),
+            });
 
-            let epic_id = db.create_epic(Epic::new("".to_owned(), "".to_owned())).unwrap();
-            let story_id = db.create_story(Story::new("".to_owned(), "".to_owned()), epic_id).unwrap();
+            let epic_id = db
+                .create_epic(Epic::new("".to_owned(), "".to_owned()))
+                .unwrap();
+            let story_id = db
+                .create_story(Story::new("".to_owned(), "".to_owned()), epic_id)
+                .unwrap();
 
-            let page = StoryDetail { epic_id, story_id, db };
+            let page = StoryDetail {
+                epic_id,
+                story_id,
+                db,
+            };
 
             let p = "p";
             let u = "u";
@@ -268,13 +439,28 @@ mod tests {
             let junk_input_with_valid_prefix = "p983f2j";
             let input_with_trailing_white_spaces = "p\n";
 
-            assert_eq!(page.handle_input(p).unwrap(), Some(Action::NavigateToPreviousPage));
-            assert_eq!(page.handle_input(u).unwrap(), Some(Action::UpdateStoryStatus { story_id }));
-            assert_eq!(page.handle_input(d).unwrap(), Some(Action::DeleteStory { epic_id, story_id }));
+            assert_eq!(
+                page.handle_input(p).unwrap(),
+                Some(Action::NavigateToPreviousPage)
+            );
+            assert_eq!(
+                page.handle_input(u).unwrap(),
+                Some(Action::UpdateStoryStatus { story_id })
+            );
+            assert_eq!(
+                page.handle_input(d).unwrap(),
+                Some(Action::DeleteStory { epic_id, story_id })
+            );
             assert_eq!(page.handle_input(some_number).unwrap(), None);
             assert_eq!(page.handle_input(junk_input).unwrap(), None);
-            assert_eq!(page.handle_input(junk_input_with_valid_prefix).unwrap(), None);
-            assert_eq!(page.handle_input(input_with_trailing_white_spaces).unwrap(), None);
-        } 
+            assert_eq!(
+                page.handle_input(junk_input_with_valid_prefix).unwrap(),
+                None
+            );
+            assert_eq!(
+                page.handle_input(input_with_trailing_white_spaces).unwrap(),
+                None
+            );
+        }
     }
 }
